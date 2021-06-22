@@ -47,10 +47,15 @@ cmd7 = "shell ls | grep test-data"
 spec :: Spec
 spec = do
     describe "haskell-terminal" $ do
-        it "echo passes output to cat" $ execute cmd1 `shouldReturn` Success "abc"
-        it "variable exporting and interpolation" $ executeMany [cmd2,cmd3,cmd4] `shouldReturn` [Success "", Success "", Success "bbbaaaa"]
-        it "checking grep and wc" $ execute cmd5 `shouldReturn` Success "5"
-        it "grep flags -A and -B work properly" $ execute cmd6 `shouldReturn` Success "four\nfive\nsix\n--\nsix\nseven\neight\n"
-        it "shell works" $ execute cmd7 `shouldReturn` Success "test-data\n"
+        it "echo passes output to cat" $
+            execute cmd1 `shouldReturn` Success "abc"
+        it "variable exporting and interpolation" $
+            executeMany [cmd2,cmd3,cmd4] `shouldReturn` [Success "", Success "", Success "bbbaaaa"]
+        it "checking grep and wc" $
+            execute cmd5 `shouldReturn` Success "5"
+        it "grep flags -A and -B work properly" $
+            execute cmd6 `shouldReturn` Success "four\nfive\nsix\n--\nsix\nseven\neight\n"
+        it "shell works" $
+            execute cmd7 `shouldReturn` Success "test-data\n"
 
 
