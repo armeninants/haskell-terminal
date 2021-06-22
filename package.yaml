@@ -24,7 +24,6 @@ dependencies:
 - rio >= 0.1.12.0
 - parsec
 - optparse-simple
-- optparse-applicative
 - universe-base
 - process
 - regex-tdfa

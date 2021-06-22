@@ -70,7 +70,6 @@ library
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.11 && <10
-    , optparse-applicative
     , optparse-simple
     , parsec
     , process
@@ -114,7 +113,6 @@ executable haskell-terminal
   build-depends:
       base >=4.11 && <10
     , haskell-terminal
-    , optparse-applicative
     , optparse-simple
     , parsec
     , process
@@ -161,7 +159,6 @@ test-suite haskell-terminal-test
       base >=4.11 && <10
     , haskell-terminal
     , hspec
-    , optparse-applicative
     , optparse-simple
     , parsec
     , process

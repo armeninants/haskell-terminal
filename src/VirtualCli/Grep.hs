@@ -1,6 +1,7 @@
 module VirtualCli.Grep where
 
 import           Import
+import RIO.List
 import           Options.Applicative.Simple hiding (Failure, Success)
 import qualified Options.Applicative.Simple as O
 import qualified System.IO                  as IO
@@ -27,8 +28,14 @@ execGrep CmdContext{..} = do
     where
         runGrep GrepOptions{..} = do
             text <- if null goFiles then return [ccStdin] else liftIO $ forM goFiles IO.readFile
-            let matched = filter (=~ goRegExp) $ concatMap lines text
-            return $ Success $ unlines matched
+            x <- concat <$> forM text runGrep_
+            return $ Success $ intercalate sep x where
+                sep = if goA + goB > 0 then replicate 60 '-' ++ "\n" else "" 
+                runGrep_ txt = return withContext where
+                    ls = lines txt
+                    matched = filter ((=~ goRegExp) . fst) $ zip ls [0..]
+                    withContext = map (\x -> unlines $ takeLines goB goA (snd x) ls) matched
+        takeLines b a i l = slice (max 0 $ i-b) (min (length l - 1) $ i+a) l
 
 grepOptsParser :: Parser GrepOptions
 grepOptsParser = GrepOptions
