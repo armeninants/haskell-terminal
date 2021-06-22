@@ -1,29 +1,46 @@
 module VirtualCli.Grep where
 
-import           Import         hiding (many)
--- import qualified System.IO as IO
+import           Import
+import           Options.Applicative.Simple hiding (Failure, Success)
+import qualified Options.Applicative.Simple as O
+import qualified System.IO                  as IO
 import           TerminalSyntax
--- import qualified Options.Applicative.Simple as O
--- import qualified Options.Applicative.Help.Chunk as O
--- import qualified Options.Applicative.Types as O
+import           Text.Regex.TDFA
+
 
 data GrepOptions = GrepOptions
     { goA      :: Int
     , goB      :: Int
     , goRegExp :: String
-    , goText   :: Maybe String -- ^ Nothing correspongs to stdin
-    }
+    , goFiles  :: [String]
+    } deriving (Show)
 
 execGrep :: CmdContext -> RIO App CmdOutput
-execGrep CmdContext{..} =
-    return $ Failure "Not implemented yet."
+execGrep CmdContext{..} = do
+    let resp = execParserPure defaultPrefs (info (grepOptsParser <**> helper) mempty) ccArgs
+    case resp of
+        O.Success grepOpts -> runGrep grepOpts
+        O.Failure flr -> do
+            let (flrStr, _) = O.renderFailure flr "grep"
+            return $ Failure flrStr
+        _ -> return $ Failure "Options are incorrect."
+    where
+        runGrep GrepOptions{..} = do
+            text <- if null goFiles then return [ccStdin] else liftIO $ forM goFiles IO.readFile
+            let matched = filter (=~ goRegExp) $ concatMap lines text
+            return $ Success $ unlines matched
 
--- catHandle :: Handle -> IO ()
--- catHandle h = do
---   eof <- IO.hIsEOF h
---   if eof
---   then
---     IO.hClose h
---   else do
---     IO.hGetLine h >>= IO.putStrLn
---     catHandle h
+grepOptsParser :: Parser GrepOptions
+grepOptsParser = GrepOptions
+    <$> option auto
+        (   short 'A'
+         <> help "After context"
+         <> value 0
+        )
+    <*> option auto
+        (   short 'B'
+         <> help "Before context"
+         <> value 0
+        )
+    <*> strArgument (metavar "PATTERN")
+    <*> some (strArgument (metavar "FILES..."))

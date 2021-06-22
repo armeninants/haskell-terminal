@@ -27,6 +27,7 @@ dependencies:
 - optparse-applicative
 - universe-base
 - process
+- regex-tdfa
 
 ghc-options:
 - -Wall
