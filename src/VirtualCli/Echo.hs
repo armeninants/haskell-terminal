@@ -5,6 +5,6 @@ import           TerminalSyntax
 
 execEcho :: CmdContext -> RIO App CmdOutput
 execEcho CmdContext{..} = do
-  if null ccArgs
-  then return $ Success ccStdin
-  else return $ Success $ unwords ccArgs
+    if null ccArgs
+    then return $ Success ccStdin
+    else return $ Success $ unwords ccArgs

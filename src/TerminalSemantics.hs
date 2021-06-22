@@ -1,9 +1,9 @@
 module TerminalSemantics where
 
-import Import hiding (many)
-import qualified System.IO as IO
-import TerminalSyntax
-import VirtualCli
+import           Import         hiding (many)
+import qualified System.IO      as IO
+import           TerminalSyntax
+import           VirtualCli
 
 execCli :: CLI -> RIO App ()
 execCli = go "" where
@@ -23,9 +23,9 @@ showCmdOut (Failure str) = liftIO $ IO.putStrLn str
 
 execCmd :: CmdName -> CmdContext -> RIO App CmdOutput
 execCmd cmdName = case cmdName of
-    Cat -> execCat
-    Echo -> execEcho
-    Wc -> execWc
-    Grep -> execGrep
-    Shell -> execShell
+    Cat    -> execCat
+    Echo   -> execEcho
+    Wc     -> execWc
+    Grep   -> execGrep
+    Shell  -> execShell
     Export -> execExport

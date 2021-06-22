@@ -1,23 +1,24 @@
 module Run where
 
-import Import hiding (many)
-import qualified System.IO as IO
-import Text.ParserCombinators.Parsec
-import TerminalSyntax
-import TerminalSemantics
-import VirtualCli
+import           Import
+import qualified System.IO                     as IO
+import           TerminalSemantics
+import           TerminalSyntax
+import           Text.ParserCombinators.Parsec
+import           VirtualCli.Export             (interpolate)
+
 
 run :: RIO App ()
 run = do
-  liftIO $ IO.hSetBuffering stdout NoBuffering
-  forever $ do
-    str <- liftIO getCmd
-    str' <- interpolate str
-    case parse cliParser "" str' of
-      Left _err   -> liftIO $ IO.putStrLn "Invalid command."
-      Right chain -> execCli chain
+    liftIO $ IO.hSetBuffering stdout NoBuffering
+    forever $ do
+        str <- liftIO getCmd
+        str' <- interpolate str
+        case parse cliParser "" str' of
+            Left _err   -> liftIO $ IO.putStrLn "Invalid command."
+            Right chain -> execCli chain
 
 getCmd :: IO String
 getCmd = do
-  IO.putStr "haskell-terminal> "
-  IO.getLine
+    IO.putStr "haskell-terminal> "
+    IO.getLine

@@ -17,10 +17,6 @@ execExport CmdContext{..} = do
         modifyMVar_ env (return . Map.insert var val)
         return $ Success ""
 
-interpolate' :: [Argument] -> RIO App [Argument]
-interpolate' args = do
-    sequenceA $ interpolate <$> args
-
 interpolate :: Argument -> RIO App Argument
 interpolate arg = do
     env <- view $ to env
