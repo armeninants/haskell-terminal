@@ -41,6 +41,9 @@ cmd5 = "shell ls | grep test-data"
 cmds6 :: [String]
 cmds6 = ["export echoVar=echo", "$echoVar \"echo this\""]
 
+cmd7 :: String
+cmd7 = "echo \" | \""
+
 
 spec :: Spec
 spec = do
@@ -57,3 +60,5 @@ spec = do
             execute cmd5 `shouldReturn` Success "test-data\n"
         it "commands can be interpolated" $
             executeMany cmds6 `shouldReturn` [Success "", Success "echo this"]
+        it "parentheses behave as expected" $
+            execute cmd7 `shouldReturn` Success " | "
