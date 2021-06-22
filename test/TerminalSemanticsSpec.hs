@@ -23,42 +23,34 @@ executeMany :: [String] -> IO [CmdOutput]
 executeMany clis = newApp >>= flip runRIO (forM clis execCliString)
 
 
-cmd1 :: String
-cmd1 = "echo \"abc\" | cat"
-
-cmds2 :: [String]
-cmds2 = ["export varName=\"aaaa\"", "export otherVar=\"bbb$varName\"", "echo \"$otherVar\""]
-
-cmd3 :: String
-cmd3 = "grep \"e\" \"test-data/file1.txt\" | wc"
-
-cmd4 :: String
-cmd4 = "grep ve \"test-data/file1.txt\" -A 1 -B 1"
-
-cmd5 :: String
-cmd5 = "shell ls | grep test-data"
-
-cmds6 :: [String]
-cmds6 = ["export echoVar=echo", "$echoVar \"echo this\""]
-
-cmd7 :: String
-cmd7 = "echo \" | \""
-
-
 spec :: Spec
 spec = do
     describe "haskell-terminal" $ do
-        it "echo passes output to cat" $
-            execute cmd1 `shouldReturn` Success "abc"
-        it "variable exporting and interpolation" $
-            executeMany cmds2 `shouldReturn` [Success "", Success "", Success "bbbaaaa"]
-        it "checking grep and wc" $
-            execute cmd3 `shouldReturn` Success "5"
-        it "grep flags -A and -B work properly" $
-            execute cmd4 `shouldReturn` Success "four\nfive\nsix\n--\nsix\nseven\neight\n"
-        it "shell works" $
-            execute cmd5 `shouldReturn` Success "test-data\n"
-        it "commands can be interpolated" $
-            executeMany cmds6 `shouldReturn` [Success "", Success "echo this"]
-        it "parentheses behave as expected" $
-            execute cmd7 `shouldReturn` Success " | "
+        it "echo passes output to cat" $ execute
+            "echo \"abc\" | cat"
+            `shouldReturn`
+            Success "abc"
+        it "variable exporting and interpolation" $ executeMany
+            ["export varName=\"aaaa\"", "export otherVar=\"bbb$varName\"", "echo \"$otherVar\""]
+            `shouldReturn`
+            [Success "", Success "", Success "bbbaaaa"]
+        it "checking grep and wc" $ execute
+            "grep \"e\" \"test-data/file1.txt\" | wc"
+            `shouldReturn`
+            Success "5"
+        it "grep flags -A and -B work properly" $ execute
+            "grep ve \"test-data/file1.txt\" -A 1 -B 1"
+            `shouldReturn`
+            Success "four\nfive\nsix\n--\nsix\nseven\neight\n"
+        it "shell works" $ execute
+            "shell ls | grep test-data"
+            `shouldReturn`
+            Success "test-data\n"
+        it "commands can be interpolated" $ executeMany
+            ["export echoVar=echo", "$echoVar \"echo this\""]
+            `shouldReturn`
+            [Success "", Success "echo this"]
+        it "parentheses behave as expected" $ execute
+            "echo \" | \""
+            `shouldReturn`
+            Success " | "
