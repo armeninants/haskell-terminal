@@ -125,6 +125,7 @@ test-suite haskell-terminal-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      TerminalSemanticsSpec
       UtilSpec
       Paths_haskell_terminal
   hs-source-dirs:
