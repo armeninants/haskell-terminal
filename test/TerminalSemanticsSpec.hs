@@ -30,26 +30,32 @@ spec = do
             "echo \"abc\" | cat"
             `shouldReturn`
             Success "abc"
+
         it "variable exporting and interpolation" $ executeMany
             ["export varName=\"aaaa\"", "export otherVar=\"bbb$varName\"", "echo \"$otherVar\""]
             `shouldReturn`
             [Success "", Success "", Success "bbbaaaa"]
+
         it "checking grep and wc" $ execute
             "grep \"e\" \"test-data/file1.txt\" | wc"
             `shouldReturn`
             Success "5"
+
         it "grep flags -A and -B work properly" $ execute
             "grep ve \"test-data/file1.txt\" -A 1 -B 1"
             `shouldReturn`
             Success "four\nfive\nsix\n--\nsix\nseven\neight\n"
+
         it "shell works" $ execute
             "shell ls | grep test-data"
             `shouldReturn`
             Success "test-data\n"
+
         it "commands can be interpolated" $ executeMany
             ["export echoVar=echo", "$echoVar \"echo this\""]
             `shouldReturn`
             [Success "", Success "echo this"]
+
         it "parentheses behave as expected" $ execute
             "echo \" | \""
             `shouldReturn`
