@@ -5,16 +5,17 @@ import qualified System.IO      as IO
 import           TerminalSyntax
 import           VirtualCli
 
-execCli :: CLI -> RIO App ()
+
+execCli :: CLI -> RIO App CmdOutput
 execCli = go "" where
-    go _stdin' (CLI []) = return ()
+    go _stdin' (CLI []) = return $ Success ""
     go stdin' (CLI (Cmd{..}:rest)) = do
         out <- execCmd cmdName (CmdContext stdin' cmdArgs)
         if null rest
-        then showCmdOut out
+        then return out
         else case out of
             Success str -> go str (CLI rest)
-            Failure str -> showCmdOut (Failure str)
+            Failure str -> return (Failure str)
 
 showCmdOut :: CmdOutput -> RIO App ()
 showCmdOut (Success str) = liftIO $ IO.putStrLn str

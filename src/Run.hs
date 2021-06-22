@@ -16,7 +16,7 @@ run = do
         str' <- interpolate str
         case parse cliParser "" str' of
             Left _err   -> liftIO $ IO.putStrLn "Invalid command."
-            Right chain -> execCli chain
+            Right chain -> execCli chain >>= showCmdOut
 
 getCmd :: IO String
 getCmd = do

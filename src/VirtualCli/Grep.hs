@@ -30,7 +30,7 @@ execGrep CmdContext{..} = do
             text <- if null goFiles then return [ccStdin] else liftIO $ forM goFiles IO.readFile
             x <- concat <$> forM text runGrep_
             return $ Success $ intercalate sep x where
-                sep = if goA + goB > 0 then replicate 60 '-' ++ "\n" else "" 
+                sep = if goA + goB > 0 then replicate 2 '-' ++ "\n" else "" 
                 runGrep_ txt = return withContext where
                     ls = lines txt
                     matched = filter ((=~ goRegExp) . fst) $ zip ls [0..]

@@ -42,6 +42,7 @@ data CmdContext = CmdContext
 data CmdOutput =
     Success String
   | Failure String
+  deriving (Eq, Show)
 
 -- * Parsers
 
