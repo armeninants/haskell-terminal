@@ -9,7 +9,6 @@ execCli :: CLI -> RIO App ()
 execCli = go "" where
     go _stdin' (CLI []) = return ()
     go stdin' (CLI (Cmd{..}:rest)) = do
-        -- cmdArgs' <- interpolate' cmdArgs
         out <- execCmd cmdName (CmdContext stdin' cmdArgs)
         if null rest
         then showCmdOut out

@@ -126,7 +126,6 @@ test-suite haskell-terminal-test
   main-is: Spec.hs
   other-modules:
       TerminalSemanticsSpec
-      UtilSpec
       Paths_haskell_terminal
   hs-source-dirs:
       test

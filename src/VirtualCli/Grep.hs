@@ -50,4 +50,4 @@ grepOptsParser = GrepOptions
          <> value 0
         )
     <*> strArgument (metavar "PATTERN")
-    <*> some (strArgument (metavar "FILES..."))
+    <*> many (strArgument (metavar "FILES..."))

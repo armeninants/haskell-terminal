@@ -1,13 +1,10 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 module TerminalSemanticsSpec (spec) where
 
-import Import
-import TerminalSemantics
-import Test.Hspec
-import Test.Hspec.QuickCheck
-
-
-
+import           Import
+import           TerminalSemantics
+import           Test.Hspec
+import           Test.Hspec.QuickCheck
 
 
 spec :: Spec
