@@ -9,7 +9,7 @@ import           VirtualCli.Export
 import           Test.Hspec
 
 
-execCliString :: String -> RIO App CmdOutput
+execCliString :: String -> AppMonad CmdOutput
 execCliString str = do
     str' <- interpolate str
     case P.parse cliParser "" str' of
@@ -17,10 +17,10 @@ execCliString str = do
         Right cli -> execCli cli
 
 execute :: String -> IO CmdOutput
-execute cli = newApp >>= flip runRIO (execCliString cli)
+execute cli = newApp >>= flip runApp (execCliString cli)
 
 executeMany :: [String] -> IO [CmdOutput]
-executeMany clis = newApp >>= flip runRIO (forM clis execCliString)
+executeMany clis = newApp >>= flip runApp (forM clis execCliString)
 
 
 spec :: Spec
