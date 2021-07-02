@@ -6,7 +6,7 @@ import qualified System.IO.Error as IO
 import           TerminalSyntax
 
 
-execWc :: CmdContext -> RIO App CmdOutput
+execWc :: CmdContext -> AppMonad CmdOutput
 execWc CmdContext{..} =
     if null ccArgs
     then return $ Success $ countWords ccStdin

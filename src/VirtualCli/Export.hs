@@ -7,17 +7,17 @@ import           Text.ParserCombinators.Parsec
 import qualified Text.ParserCombinators.Parsec as P
 
 
-execExport :: CmdContext -> RIO App CmdOutput
+execExport :: CmdContext -> AppMonad CmdOutput
 execExport CmdContext{..} = do
   let args = concat ccArgs
   case parse varValParser "" args of
     Left e -> return $ Failure $ show e
     Right (var, val) -> do
         env <- view $ to env
-        modifyMVar_ env (return . Map.insert var val)
+        liftIO $ modifyMVar_ env (return . Map.insert var val)
         return $ Success ""
 
-interpolate :: Argument -> RIO App Argument
+interpolate :: Argument -> AppMonad Argument
 interpolate arg = do
     env <- view $ to env
     m <- readMVar env

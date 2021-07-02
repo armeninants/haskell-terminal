@@ -70,6 +70,7 @@ library
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.11 && <10
+    , haskeline
     , optparse-simple
     , parsec
     , process
@@ -112,6 +113,7 @@ executable haskell-terminal
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.11 && <10
+    , haskeline
     , haskell-terminal
     , optparse-simple
     , parsec
@@ -157,6 +159,7 @@ test-suite haskell-terminal-test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.11 && <10
+    , haskeline
     , haskell-terminal
     , hspec
     , optparse-simple

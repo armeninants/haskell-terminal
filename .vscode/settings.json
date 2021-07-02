@@ -1,0 +1,8 @@
+{
+    "haskell.formattingProvider": "stylish-haskell",
+    "[haskell]": {
+        "editor.defaultFormatter": "vigoo.stylish-haskell",
+        "editor.tabSize": 4,
+        "editor.detectIndentation": false
+    },
+}

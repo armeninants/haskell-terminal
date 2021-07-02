@@ -1,22 +1,24 @@
 module VirtualCli.Grep where
 
 import           Import
-import RIO.List
 import           Options.Applicative.Simple hiding (Failure, Success)
 import qualified Options.Applicative.Simple as O
+import           RIO.List
 import qualified System.IO                  as IO
 import           TerminalSyntax
 import           Text.Regex.TDFA
 
 
-data GrepOptions = GrepOptions
-    { goA      :: Int
-    , goB      :: Int
-    , goRegExp :: String
-    , goFiles  :: [String]
-    } deriving (Show)
+data GrepOptions
+    = GrepOptions
+        { goA      :: Int
+        , goB      :: Int
+        , goRegExp :: String
+        , goFiles  :: [String]
+        }
+  deriving (Show)
 
-execGrep :: CmdContext -> RIO App CmdOutput
+execGrep :: CmdContext -> AppMonad CmdOutput
 execGrep CmdContext{..} = do
     let resp = execParserPure defaultPrefs (info (grepOptsParser <**> helper) mempty) ccArgs
     case resp of
@@ -30,7 +32,7 @@ execGrep CmdContext{..} = do
             text <- if null goFiles then return [ccStdin] else liftIO $ forM goFiles IO.readFile
             x <- concat <$> forM text runGrep_
             return $ Success $ intercalate sep x where
-                sep = if goA + goB > 0 then replicate 2 '-' ++ "\n" else "" 
+                sep = if goA + goB > 0 then replicate 2 '-' ++ "\n" else ""
                 runGrep_ txt = return withContext where
                     ls = lines txt
                     matched = filter ((=~ goRegExp) . fst) $ zip ls [0..]

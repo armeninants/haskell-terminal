@@ -27,6 +27,7 @@ dependencies:
 - universe-base
 - process
 - regex-tdfa
+- haskeline
 
 ghc-options:
 - -Wall

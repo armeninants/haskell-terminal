@@ -6,7 +6,7 @@ import           System.Process  (readProcess)
 import           TerminalSyntax
 
 
-execShell :: CmdContext -> RIO App CmdOutput
+execShell :: CmdContext -> AppMonad CmdOutput
 execShell CmdContext{..} = do
     liftIO $ IO.catchIOError
         (Success <$> readProcess "sh" ["-c", unwords ccArgs] "")

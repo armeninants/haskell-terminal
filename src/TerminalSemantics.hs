@@ -6,7 +6,7 @@ import           TerminalSyntax
 import           VirtualCli
 
 
-execCli :: CLI -> RIO App CmdOutput
+execCli :: CLI -> AppMonad CmdOutput
 execCli = go "" where
     go _stdin' (CLI []) = return $ Success ""
     go stdin' (CLI (Cmd{..}:rest)) = do
@@ -17,11 +17,11 @@ execCli = go "" where
             Success str -> go str (CLI rest)
             Failure str -> return (Failure str)
 
-showCmdOut :: CmdOutput -> RIO App ()
+showCmdOut :: CmdOutput -> AppMonad ()
 showCmdOut (Success str) = liftIO $ IO.putStrLn str
 showCmdOut (Failure str) = liftIO $ IO.putStrLn str
 
-execCmd :: CmdName -> CmdContext -> RIO App CmdOutput
+execCmd :: CmdName -> CmdContext -> AppMonad CmdOutput
 execCmd cmdName = case cmdName of
     Cat    -> execCat
     Echo   -> execEcho

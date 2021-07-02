@@ -8,7 +8,7 @@ import           TerminalSyntax
 -- import qualified Options.Applicative.Help.Chunk as O
 -- import qualified Options.Applicative.Types as O
 
-execCat :: CmdContext -> RIO App CmdOutput
+execCat :: CmdContext -> AppMonad CmdOutput
 execCat CmdContext{..} =
     if null ccArgs
     then return $ Success ccStdin
