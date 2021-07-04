@@ -59,3 +59,8 @@ spec = do
             "echo \" | \""
             `shouldReturn`
             Success " | "
+
+        it "supports inline comments" $ execute
+            "echo hello \"#world\" # howdy"
+            `shouldReturn`
+            Success "hello #world"

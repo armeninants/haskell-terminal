@@ -1,5 +1,3 @@
-{-# LANGUAGE ConstraintKinds #-}
-
 module TerminalSyntax where
 
 import           Data.Char
@@ -62,6 +60,7 @@ evalVars s = fromRight "" <$> runParserT varEvalParser () "" s
 P.TokenParser{..} = P.makeTokenParser $ emptyDef
     { commentStart = "{-"
     , commentEnd = "-}"
+    , commentLine = "#"
     , identStart = letter
     , identLetter = alphaNum
     , opStart = oneOf "|="
