@@ -30,7 +30,6 @@ library
       TerminalSemantics
       TerminalSyntax
       Types
-      Util
       VirtualCli
       VirtualCli.Cat
       VirtualCli.Echo

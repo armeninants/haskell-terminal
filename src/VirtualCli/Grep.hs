@@ -18,6 +18,7 @@ data GrepOptions
         }
   deriving (Show)
 
+
 execGrep :: CmdContext -> AppMonad CmdOutput
 execGrep CmdContext{..} = do
     let resp = execParserPure defaultPrefs (info (grepOptsParser <**> helper) mempty) ccArgs
@@ -39,6 +40,7 @@ execGrep CmdContext{..} = do
                     withContext = map (\x -> unlines $ takeLines goB goA (snd x) ls) matched
         takeLines b a i l = slice (max 0 $ i-b) (min (length l - 1) $ i+a) l
 
+
 grepOptsParser :: Parser GrepOptions
 grepOptsParser = GrepOptions
     <$> option auto
@@ -53,3 +55,7 @@ grepOptsParser = GrepOptions
         )
     <*> strArgument (metavar "PATTERN")
     <*> many (strArgument (metavar "FILES..."))
+
+
+slice :: Int -> Int -> [a] -> [a]
+slice iFrom iTo xs = take (iTo - iFrom + 1) (drop iFrom xs)
