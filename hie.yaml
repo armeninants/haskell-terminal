@@ -1,0 +1,13 @@
+cradle:
+  stack:
+    - path: "./src"
+      component: "haskell-terminal:lib"
+
+    - path: "./app/Main.hs"
+      component: "haskell-terminal:exe:haskell-terminal"
+
+    - path: "./app/Paths_haskell_terminal.hs"
+      component: "haskell-terminal:exe:haskell-terminal"
+
+    - path: "./test"
+      component: "haskell-terminal:test:haskell-terminal-test"
