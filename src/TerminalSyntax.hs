@@ -58,8 +58,8 @@ evalVars s = fromRight "" <$> runParserT varEvalParser () "" s
 
 -- | Token parsers.
 P.TokenParser{..} = P.makeTokenParser $ emptyDef
-    { commentStart = "{-"
-    , commentEnd = "-}"
+    { commentStart = ""
+    , commentEnd = ""
     , commentLine = "#"
     , identStart = letter
     , identLetter = alphaNum
