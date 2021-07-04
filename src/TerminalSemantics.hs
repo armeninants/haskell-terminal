@@ -29,4 +29,3 @@ execCmd cmdName = case cmdName of
     Wc     -> execWc
     Grep   -> execGrep
     Shell  -> execShell
-
