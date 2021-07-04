@@ -1,6 +1,6 @@
 # haskell-terminal
 
-![example workflow](https://github.com/armeninants/haskell-terminal/actions/workflows/haskell.yml/badge.svg)
+[![example workflow](https://github.com/armeninants/haskell-terminal/actions/workflows/haskell.yml/badge.svg)](https://github.com/armeninants/haskell-terminal/actions/)
 
 ## Execute  
 
