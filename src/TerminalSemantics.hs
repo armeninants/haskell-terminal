@@ -8,18 +8,19 @@ import           VirtualCli
 
 execCli :: CLI -> AppMonad CmdOutput
 execCli = go "" where
-    go _stdin' (CLI []) = return $ Success ""
-    go stdin' (CLI (Cmd{..}:rest)) = do
-        out <- execCmd cmdName (CmdContext stdin' cmdArgs)
-        if null rest
-        then return out
-        else case out of
-            Success str -> go str (CLI rest)
+    go stdin' (Cmd name args) = execCmd name (CmdContext stdin' args)
+    go stdin' (Export var val) = execExport (CmdContext stdin' [var, val])
+    go stdin' (Pipe cmd1 cmd2) = do
+        out <- go stdin' cmd1
+        case out of
+            Success str -> go str cmd2
             Failure str -> return (Failure str)
+
 
 showCmdOut :: CmdOutput -> AppMonad ()
 showCmdOut (Success str) = liftIO $ IO.putStrLn str
 showCmdOut (Failure str) = liftIO $ IO.putStrLn str
+
 
 execCmd :: CmdName -> CmdContext -> AppMonad CmdOutput
 execCmd cmdName = case cmdName of
@@ -28,4 +29,4 @@ execCmd cmdName = case cmdName of
     Wc     -> execWc
     Grep   -> execGrep
     Shell  -> execShell
-    Export -> execExport
+

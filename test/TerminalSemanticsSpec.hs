@@ -3,15 +3,14 @@ module TerminalSemanticsSpec (spec) where
 
 import           Import
 import           TerminalSemantics
-import qualified Text.ParserCombinators.Parsec as P
 import           TerminalSyntax
-import           VirtualCli.Export
 import           Test.Hspec
+import qualified Text.ParserCombinators.Parsec as P
 
 
 execCliString :: String -> AppMonad CmdOutput
 execCliString str = do
-    str' <- interpolate str
+    str' <- evalVars str
     case P.parse cliParser "" str' of
         Left _err -> return $ Failure ""
         Right cli -> execCli cli
