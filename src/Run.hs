@@ -10,7 +10,6 @@ import           Text.ParserCombinators.Parsec
 
 run :: AppMonad ()
 run = do
-    -- throwErrovr "a"
     liftIO $ IO.hSetBuffering stdout NoBuffering
     forever $ do
         inputStr <- evalVars =<< getCmd

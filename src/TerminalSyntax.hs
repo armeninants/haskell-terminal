@@ -66,7 +66,7 @@ P.TokenParser{..} = P.makeTokenParser $ emptyDef
     , opStart = oneOf "|="
     , opLetter = oneOf "|="
     , reservedOpNames = ["|", "="]
-    , reservedNames = ["cat", "export", "echo", "wc", "grep", "shell"]
+    , reservedNames = ["export"]
     }
 
 
