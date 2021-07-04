@@ -1,82 +1,96 @@
+{-# LANGUAGE ConstraintKinds #-}
+
 module TerminalSyntax where
 
 import           Data.Char
 import           Data.Universe.Class
-import           Import                        hiding (many)
-import           Prelude                       (foldr1)
+import           Import                                 hiding (many, try,
+                                                         (<|>))
+import           Prelude                                (foldr1)
+import           Text.Parsec                            (ParsecT, runParserT)
 import           Text.ParserCombinators.Parsec
-import qualified Text.ParserCombinators.Parsec as P
+import           Text.ParserCombinators.Parsec.Expr     as P
+import           Text.ParserCombinators.Parsec.Language
+import qualified Text.ParserCombinators.Parsec.Token    as P
 
--- * Terminal language
 
-newtype CatOptions = CatOptions
-  { coFiles :: [String]
-  }
+-- * Terminal's CLI language
 
-data CmdName =
-    Cat
-  | Export
-  | Echo
-  | Wc
-  | Grep
-  | Shell
-  deriving (Show, Enum, Bounded, Universe, Finite)
+data CmdName
+    = Cat
+    | Echo
+    | Wc
+    | Grep
+    | Shell
+    deriving (Show, Enum, Bounded, Universe, Finite)
 
-type Stdin = String
+data CLI
+    = Cmd CmdName [String]
+    | Export String String
+    | Pipe CLI CLI
+    deriving (Show)
 
-type Argument = String
-
-data Cmd = Cmd
-    { cmdName :: CmdName
-    , cmdArgs :: [Argument]
-    } deriving (Show)
-
-newtype CLI = CLI [Cmd]
-  deriving (Show)
-
-data CmdContext = CmdContext
-    { ccStdin :: String
-    , ccArgs  :: [Argument]
-    }
+data CmdContext
+    = CmdContext
+        { ccStdin :: String
+        , ccArgs  :: [String]
+        }
 
 data CmdOutput =
     Success String
   | Failure String
   deriving (Eq, Show)
 
+
 -- * Parsers
 
-cliParser :: Parser CLI
-cliParser = CLI <$> (spaces *> sepBy cmdParser (string "|" <* spaces))
+type EvalParser m = ParsecT String () m
 
-cmdParser :: Parser Cmd
-cmdParser = do
-    cmdName <- cmdNameParser
-    spaces
-    Cmd cmdName <$> argsParser
+
+varEvalParser :: HasEvalContext m => EvalParser m String
+varEvalParser = concat <$> many p where
+    p = p1 <|> p2
+    p1 = lift . getEnv =<< string "$" *> (identifier <|> braces identifier)
+    p2 = many1 $ noneOf "$"
+
+
+evalVars :: HasEvalContext m => String -> m String
+evalVars s = fromRight "" <$> runParserT varEvalParser () "" s
+
+
+-- | Token parsers.
+P.TokenParser{..} = P.makeTokenParser $ emptyDef
+    { commentStart = "{-"
+    , commentEnd = "-}"
+    , identStart = letter
+    , identLetter = alphaNum
+    , opStart = oneOf "|="
+    , opLetter = oneOf "|="
+    , reservedOpNames = ["|", "="]
+    , reservedNames = ["cat", "export", "echo", "wc", "grep", "shell"]
+    }
+
 
 cmdNameParser :: Parser CmdName
-cmdNameParser = foldr1 ((P.<|>) . P.try) (mkParser <$> universeF)
+cmdNameParser = foldr1 ((<|>) . try) (mkParser <$> universeF)
     where mkParser t = t <$ string (toLower <$> show t)
 
-argsParser :: Parser [String]
-argsParser = sepEndBy (concat <$> many1 (choice [parseUnquoted, parseQuoted])) (many1 space)
 
-parseQuoted :: Parser String
-parseQuoted = concat <$> betweenDoubleQuotes (many inner)
+-- | Expression parser.
+cliParser :: Parser CLI
+cliParser = P.buildExpressionParser table term <?> "expression"
     where
-        inner = fmap return (P.try nonEscape) P.<|> escape
-        -- betweenSingleQuotes x = char '\'' *> x <* char '\''
-        betweenDoubleQuotes x = char '"' *> x <* char '"'
+        table =
+            [ [Infix (reservedOp "|" >> return Pipe) AssocLeft]
+            ]
+        term =
+                (Cmd <$> lexeme cmdNameParser <*> many argument)
+            <|> (reserved "export" >> Export <$> (identifier <* reservedOp "=") <*> argument)
 
-parseUnquoted :: Parser String
-parseUnquoted = many1 $ noneOf ['"', ' ', '|']
 
-escape :: Parser String
-escape = do
-    d <- char '\\'
-    c <- oneOf ['\\', '\"', '0', 'n', 'r', 'v', 't', 'b', 'f']
-    return [d, c]
+unquoted :: Parser String
+unquoted = many1 $ satisfy ((&&) <$> not . isSpace <*> not . (`elem` ['|', '\\', '"']))
 
-nonEscape :: Parser Char
-nonEscape = noneOf ['\\', '\"', '\0', '\n', '\r', '\v', '\t', '\b', '\f']
+
+argument :: Parser String
+argument = stringLiteral <|> lexeme unquoted
