@@ -82,8 +82,7 @@ cliParser = P.buildExpressionParser table term <?> "expression"
         table =
             [ [Infix (reservedOp "|" >> return Pipe) AssocLeft]
             ]
-        term =
-                (Cmd <$> lexeme cmdNameParser <*> many argument)
+        term =  (Cmd <$> lexeme cmdNameParser <*> many argument)
             <|> (reserved "export" >> Export <$> (identifier <* reservedOp "=") <*> argument)
 
 

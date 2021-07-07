@@ -15,7 +15,7 @@ run = do
         inputStr <- evalVars =<< getCmd
         case parse cliParser "" inputStr of
             Left _err   -> liftIO $ IO.putStrLn "Invalid command."
-            Right chain -> execCli chain >>= showCmdOut
+            Right cli -> execCli cli >>= showCmdOut
 
 
 getCmd :: AppMonad String

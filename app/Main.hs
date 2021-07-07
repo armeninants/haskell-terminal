@@ -5,6 +5,4 @@ import Run
 
 
 main :: IO ()
-main = do
-    app <- newApp
-    runApp app run
+main = flip runApp run =<< newApp
