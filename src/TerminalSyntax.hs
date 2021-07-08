@@ -49,7 +49,7 @@ makeFree ''ProgramF
 
 terminalApp :: Terminal ()
 terminalApp = do
-    tPrint "Welcome to Haskell Terminal! Type `help` for instructions or `:q` to quit.\n"
+    tPrint "Welcome to Haskell Terminal!\nType `help` for instructions or `:q` to quit.\n\n"
     fix $ \loop -> do
         cli <- evalVars =<< tGetLine
         case cli of
@@ -70,9 +70,9 @@ tGetLine :: Terminal String
 tGetLine = do
     l <- fmap trim <$> tReadLine "haskell-terminal> "
     case l of
-        Nothing -> tGetLine
-        Just "" -> tGetLine
-        Just str     -> return str
+        Nothing  -> tGetLine
+        Just ""  -> tGetLine
+        Just str -> return str
 
 
 tHandleProgram :: Program -> Terminal ()
