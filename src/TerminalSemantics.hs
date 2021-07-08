@@ -12,19 +12,14 @@ import           TerminalSyntax
 import           Text.ParserCombinators.Parsec
 
 
-
-------------------------------------------------------------
--- Program Semantics
-
 newtype SessionContext = SessionContext
     { senv :: MVar (Map String String)
     }
 
 
-newtype ProgramContext
-    = ProgramContext
-        { penv :: MVar (Map String String)
-        }
+newtype ProgramContext = ProgramContext
+    { penv :: MVar (Map String String)
+    }
 
 
 type TerminalIO = ReaderT SessionContext (InputT IO)

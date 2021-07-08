@@ -4,21 +4,12 @@ module TerminalSyntax where
 
 import           Control.Monad.Free
 import           Control.Monad.Free.TH
-import           Data.Char
-import           Data.Universe.Class
-import           Prelude                                (foldr1)
-import           RIO                                    hiding (many, try,
-                                                         (<|>))
-import qualified RIO.Text                               as T
-import           Text.Parsec                            (ParsecT, runParserT)
+import           Lexer
+import           RIO                           hiding (many, try, (<|>))
+import qualified RIO.Text                      as T
+import           Text.Parsec                   (ParsecT, runParserT)
 import           Text.ParserCombinators.Parsec
-import           Text.ParserCombinators.Parsec.Expr     as P
-import           Text.ParserCombinators.Parsec.Language
-import qualified Text.ParserCombinators.Parsec.Token    as P
-import Lexer
 
-------------------------------------------------------------
--- Program Syntax
 
 data TerminalF next
     = TReadLine String (Maybe String -> next)
@@ -96,6 +87,7 @@ evalVars s = fromRight "" <$> runParserT varEvalParser () "" s
             p = p1 <|> p2
             p1 = lift . tGetEnv =<< string "$" *> (identifier <|> braces identifier)
             p2 = many1 $ noneOf "$"
+
 
 trimEnd :: String -> String
 trimEnd = T.unpack . T.stripEnd . T.pack
