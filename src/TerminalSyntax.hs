@@ -4,11 +4,12 @@ module TerminalSyntax where
 
 import           Control.Monad.Free
 import           Control.Monad.Free.TH         (makeFree)
-import           Lexer
-import           RIO                           hiding (many, try, (<|>))
+import           Lexer                         (braces, identifier)
+import           RIO                           hiding (many, (<|>))
 import qualified RIO.Text                      as T
-import           Text.Parsec                   (ParsecT, runParserT)
-import           Text.ParserCombinators.Parsec
+import           Text.Parsec                   (runParserT)
+import           Text.ParserCombinators.Parsec (many, many1, noneOf, string,
+                                                (<|>))
 
 
 data TerminalF next
