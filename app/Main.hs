@@ -1,8 +1,8 @@
 module Main (main) where
 
-import Import
-import Run
-
+import RIO
+import           TerminalSemantics
+import           TerminalSyntax
 
 main :: IO ()
-main = flip runApp run =<< newApp
+main = runTerminal terminalApp

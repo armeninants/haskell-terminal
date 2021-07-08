@@ -25,18 +25,9 @@ source-repository head
 
 library
   exposed-modules:
-      Import
-      Run
       TerminalSemantics
       TerminalSyntax
-      Types
-      VirtualCli
-      VirtualCli.Cat
-      VirtualCli.Echo
-      VirtualCli.Export
-      VirtualCli.Grep
-      VirtualCli.Shell
-      VirtualCli.Wc
+      ToyPrograms
   other-modules:
       Paths_haskell_terminal
   hs-source-dirs:
@@ -68,8 +59,11 @@ library
       TypeFamilies
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints
   build-depends:
-      base >=4.11 && <10
+      ansi-terminal
+    , base >=4.11 && <10
+    , free
     , haskeline
+    , mtl
     , optparse-simple
     , parsec
     , process
@@ -111,9 +105,12 @@ executable haskell-terminal
       TypeFamilies
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.11 && <10
+      ansi-terminal
+    , base >=4.11 && <10
+    , free
     , haskeline
     , haskell-terminal
+    , mtl
     , optparse-simple
     , parsec
     , process
@@ -157,10 +154,13 @@ test-suite haskell-terminal-test
       TypeFamilies
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.11 && <10
+      ansi-terminal
+    , base >=4.11 && <10
+    , free
     , haskeline
     , haskell-terminal
     , hspec
+    , mtl
     , optparse-simple
     , parsec
     , process

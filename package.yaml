@@ -28,6 +28,9 @@ dependencies:
 - process
 - regex-tdfa
 - haskeline
+- free
+- ansi-terminal
+- mtl
 
 ghc-options:
 - -Wall
