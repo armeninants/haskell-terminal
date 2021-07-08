@@ -1,13 +1,31 @@
 module ToyPrograms where
 
-import           Options.Applicative.Simple hiding (Failure, Success)
-import qualified Options.Applicative.Simple as O
+import           Options.Applicative.Simple
 import           RIO
 import           RIO.List
 import qualified System.IO                  as IO
 import           System.Process             (readProcess)
 import           TerminalSyntax
 import           Text.Regex.TDFA
+
+
+handleArgs
+    :: String               -- ^ command's name
+    -> Parser opts          -- ^ parses arguments into options
+    -> [String]             -- ^ arguments
+    -> (opts -> Program)    -- ^ main application
+    -> Program
+
+handleArgs name parser args prog =
+    let
+        opts = info (parser <**> helper) mempty
+        resp = execParserPure defaultPrefs opts args
+    in case resp of
+        Success options -> prog options
+        Failure flr ->
+            let (flrStr, ec) = renderFailure flr name
+            in  const $ (if ec == ExitSuccess then return else pThrowError) flrStr
+        _ -> const $ pThrowError "Options are incorrect."
 
 
 ------------------------------------------------------------
@@ -56,12 +74,12 @@ grepOptsParser :: Parser GrepOptions
 grepOptsParser = GrepOptions
     <$> option auto
         (   short 'A'
-         <> O.help "After context"
+         <> help "After context"
          <> value 0
         )
     <*> option auto
         (   short 'B'
-         <> O.help "Before context"
+         <> help "Before context"
          <> value 0
         )
     <*> strArgument (metavar "PATTERN")
@@ -73,19 +91,9 @@ slice iFrom iTo xs = take (iTo - iFrom + 1) (drop iFrom xs)
 
 
 grepProgram :: [String] -> Program
-grepProgram args inStr = do
-    let opts = info (grepOptsParser <**> helper) mempty
-        resp = execParserPure defaultPrefs opts args
-    case resp of
-        O.Success grepOpts -> runGrep grepOpts
-        O.Failure flr -> do
-            let (flrStr, ec) = O.renderFailure flr "grep"
-            case ec of
-                ExitSuccess   -> return flrStr
-                ExitFailure _ -> pThrowError flrStr
-        _ -> pThrowError "Options are incorrect."
+grepProgram args = handleArgs "grep" grepOptsParser args runGrep
     where
-        runGrep GrepOptions{..} = do
+        runGrep GrepOptions{..} inStr = do
             text <-
                 if null goFiles
                 then return [inStr]
