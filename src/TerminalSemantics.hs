@@ -1,33 +1,16 @@
 module TerminalSemantics where
 
+import           CLIParser
 import           Control.Monad.Except          (ExceptT, runExceptT, throwError)
 import           Control.Monad.Free
-import RIO                        hiding (many, (<|>))
+import           RIO                           hiding (many, (<|>))
 import qualified RIO.Map                       as Map
 import           System.Console.ANSI
 import           System.Console.Haskeline
 import           System.IO                     (putStr, putStrLn)
--- import qualified System.IO                as IO
 import           TerminalSyntax
 import           Text.ParserCombinators.Parsec
-import           ToyPrograms
 
-
-------------------------------------------------------------
--- CLI Semantics
-
-toProgram :: CLI -> Program
-toProgram = \case
-    Cmd name args -> case name of
-        Cat   -> catProgram args
-        Echo  -> echoProgram args
-        Wc    -> wcProgram args
-        Grep  -> grepProgram args
-        Shell -> shellProgram args
-
-    Export var val -> exportProgram [var, val]
-
-    Pipe cmd1 cmd2 -> toProgram cmd1 >=> toProgram cmd2
 
 
 ------------------------------------------------------------
@@ -38,10 +21,9 @@ newtype SessionContext = SessionContext
     }
 
 
-data ProgramContext
+newtype ProgramContext
     = ProgramContext
         { penv :: MVar (Map String String)
-        , pout :: MVar String
         }
 
 
@@ -57,8 +39,7 @@ newSession = SessionContext <$> newMVar Map.empty
 
 newProgramContext :: MonadIO m => SessionContext -> m ProgramContext
 newProgramContext SessionContext{..} = do
-    outM <- newMVar ""
-    return $ ProgramContext {penv = senv, pout = outM}
+    return $ ProgramContext {penv = senv}
 
 
 runTerminal :: (MonadIO m) => Terminal a -> m a
@@ -78,14 +59,14 @@ runProgram prog input = do
 
 interpretTerminal :: TerminalF (TerminalIO next) -> TerminalIO next
 interpretTerminal = \case
-    TReadLine str next -> lift (getInputLine str) >>= next
+    TReadLine str next ->
+        lift (getInputLine str) >>= next
 
-    TParse str next -> do
-        case parse cliParser "" str of
-            Left _err -> next $ Left "Invalid command."
-            Right cli -> next $ Right $ toProgram cli
+    TParse str next ->
+        next $ mapLeft (const "Invalid command.") (parse cliParser "" str)
 
-    TRun prog next -> runProgram prog "" >>= next
+    TRun prog next ->
+        runProgram prog "" >>= next
 
     TPrint str next -> do
         liftIO $ putStr str
@@ -98,8 +79,6 @@ interpretTerminal = \case
             setSGR [Reset]
             putStrLn str
         next
-
-    TQuit _ -> exitSuccess
 
     TGetEnv var next -> do
         env <- view $ to senv
@@ -122,14 +101,3 @@ interpretProgram = \case
         next ""
 
     PThrowError str next -> throwError str >> next ""
-
-    PPrint str next -> do
-        out <- view $ to pout
-        liftIO $ modifyMVar_ out (return . (++ str))
-        next ""
-
-    PReturn next -> do
-        outM <- view $ to pout
-        out <- readMVar outM
-        liftIO $ modifyMVar_ outM (const $ return "")
-        next out

@@ -15,72 +15,10 @@ import           Text.ParserCombinators.Parsec
 import           Text.ParserCombinators.Parsec.Expr     as P
 import           Text.ParserCombinators.Parsec.Language
 import qualified Text.ParserCombinators.Parsec.Token    as P
-
--- * Terminal's CLI language
-
-data CmdName
-    = Cat
-    | Echo
-    | Wc
-    | Grep
-    | Shell
-    deriving (Show, Enum, Bounded, Universe, Finite)
-
-data CLI
-    = Cmd CmdName [String]
-    | Export String String
-    | Pipe CLI CLI
-    deriving (Show)
-
-data CmdContext
-    = CmdContext
-        { ccStdin :: String
-        , ccArgs  :: [String]
-        }
-
-data CmdOutput =
-    Success String
-  | Failure String
-  deriving (Eq, Show)
-
-
--- * Parsers
-
--- | Token parsers.
-P.TokenParser{..} = P.makeTokenParser $ emptyDef
-    { commentStart = ""
-    , commentEnd = ""
-    , commentLine = "#"
-    , identStart = letter
-    , identLetter = alphaNum
-    , opStart = oneOf "|="
-    , opLetter = oneOf "|="
-    , reservedOpNames = ["|", "="]
-    , reservedNames = ["export"]
-    }
-
-
-cmdNameParser :: Parser CmdName
-cmdNameParser = foldr1 ((<|>) . try) (mkParser <$> universeF)
-    where mkParser t = t <$ string (toLower <$> show t)
-
-
--- | Expression parser.
-cliParser :: Parser CLI
-cliParser = P.buildExpressionParser table term <?> "expression"
-    where
-        table =
-            [ [Infix (reservedOp "|" >> return Pipe) AssocLeft]
-            ]
-        term =  (Cmd <$> lexeme cmdNameParser <*> many argument)
-            <|> (reserved "export" >> Export <$> (identifier <* reservedOp "=") <*> argument)
-        unquoted = many1 $ satisfy ((&&) <$> not . isSpace <*> not . (`elem` ['|', '\\', '"']))
-        argument = stringLiteral <|> lexeme unquoted
-
+import Lexer
 
 ------------------------------------------------------------
 -- Program Syntax
-
 
 data TerminalF next
     = TReadLine String (Maybe String -> next)
@@ -89,7 +27,6 @@ data TerminalF next
     | TPrint String next
     | TPrintError String next
     | TGetEnv String (String -> next)
-    | TQuit next
     deriving (Functor)
 
 
@@ -101,8 +38,6 @@ data ProgramF next where
     PGetEnv :: String -> (String -> next) -> ProgramF next
     PSetEnv :: String -> String -> (String -> next) -> ProgramF next
     PThrowError :: String -> (String -> next) -> ProgramF next
-    PPrint :: String -> (String -> next) -> ProgramF next
-    PReturn :: (String -> next) -> ProgramF next
 
 
 deriving instance Functor ProgramF
