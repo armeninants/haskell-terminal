@@ -3,7 +3,7 @@
 module TerminalSyntax where
 
 import           Control.Monad.Free
-import           Control.Monad.Free.TH
+import           Control.Monad.Free.TH         (makeFree)
 import           Lexer
 import           RIO                           hiding (many, try, (<|>))
 import qualified RIO.Text                      as T
@@ -80,13 +80,11 @@ tPrintLn = tPrint . (++ "\n") . trimEnd
 
 
 evalVars :: String -> Terminal String
-evalVars s = fromRight "" <$> runParserT varEvalParser () "" s
+evalVars s = fromRight "" <$> runParserT p () "" s
     where
-        varEvalParser :: ParsecT String () Terminal String
-        varEvalParser = concat <$> many p where
-            p = p1 <|> p2
-            p1 = lift . tGetEnv =<< string "$" *> (identifier <|> braces identifier)
-            p2 = many1 $ noneOf "$"
+        p = concat <$> many (p1 <|> p2)
+        p1 = lift . tGetEnv =<< string "$" *> (identifier <|> braces identifier)
+        p2 = many1 $ noneOf "$"
 
 
 trimEnd :: String -> String

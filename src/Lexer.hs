@@ -1,13 +1,12 @@
 module Lexer where
 
 
-import           RIO
 import           Text.ParserCombinators.Parsec
 import           Text.ParserCombinators.Parsec.Language
 import qualified Text.ParserCombinators.Parsec.Token    as P
 
 
-P.TokenParser{..} = P.makeTokenParser $ emptyDef
+P.TokenParser{..} = P.makeTokenParser emptyDef
     { commentStart = ""
     , commentEnd = ""
     , commentLine = "#"
