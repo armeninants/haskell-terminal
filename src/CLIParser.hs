@@ -7,6 +7,7 @@ import RIO                                hiding (many, try, (<|>))
 import TerminalSyntax
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Expr as P
+import Text.Printf                        (printf)
 import ToyPrograms
 
 
@@ -37,7 +38,7 @@ progParser = do
         "wc"    -> wcProgram args
         "grep"  -> grepProgram args
         "shell" -> shellProgram args
-        unknown -> \_ -> pThrowError $ "There is no command " ++ unknown
+        unknown -> \_ -> pThrowError $ printf "'%s' is not a command." unknown
 
 
 exportParser :: Parser Program

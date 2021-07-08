@@ -74,12 +74,15 @@ slice iFrom iTo xs = take (iTo - iFrom + 1) (drop iFrom xs)
 
 grepProgram :: [String] -> Program
 grepProgram args inStr = do
-    let resp = execParserPure defaultPrefs (info (grepOptsParser <**> helper) mempty) args
+    let opts = info (grepOptsParser <**> helper) mempty
+        resp = execParserPure defaultPrefs opts args
     case resp of
         O.Success grepOpts -> runGrep grepOpts
         O.Failure flr -> do
-            let (flrStr, _) = O.renderFailure flr "grep"
-            pThrowError flrStr
+            let (flrStr, ec) = O.renderFailure flr "grep"
+            case ec of
+                ExitSuccess   -> return flrStr
+                ExitFailure _ -> pThrowError flrStr
         _ -> pThrowError "Options are incorrect."
     where
         runGrep GrepOptions{..} = do

@@ -48,15 +48,17 @@ makeFree ''ProgramF
 
 
 terminalApp :: Terminal ()
-terminalApp = fix $ \loop -> do
-    cli <- evalVars . trim =<< tGetLine
-    case cli of
-        ":q" -> return ()
-        "help" -> tHelp >> loop
-        _ -> do
-            mprog <- tParse cli
-            either tPrintError tHandleProgram mprog
-            loop
+terminalApp = do
+    tPrint "Welcome to Haskell Terminal! Type `help` for instructions or `:q` to quit.\n"
+    fix $ \loop -> do
+        cli <- evalVars =<< tGetLine
+        case cli of
+            ":q" -> return ()
+            "help" -> tHelp >> loop
+            _ -> do
+                mprog <- tParse cli
+                either tPrintError tHandleProgram mprog
+                loop
 
 
 -- | Takes a cli input and returns the results of its execution.
@@ -65,7 +67,12 @@ terminalTestApp = evalVars >=> tParse >=> either (return . Left) tRun
 
 
 tGetLine :: Terminal String
-tGetLine = tReadLine "haskell-terminal> " >>= maybe tGetLine return
+tGetLine = do
+    l <- fmap trim <$> tReadLine "haskell-terminal> "
+    case l of
+        Nothing -> tGetLine
+        Just "" -> tGetLine
+        Just str     -> return str
 
 
 tHandleProgram :: Program -> Terminal ()
@@ -73,11 +80,21 @@ tHandleProgram = tRun >=> either tPrintError tPrintLn
 
 
 tHelp :: Terminal ()
-tHelp = tPrint "This is help\n"
+tHelp = tPrint "\nThe supported commands are: cat, echo, grep, wc, shell.\n\
+                \Use --help pragma for more info, e.g. \n\
+                \  grep --help\n\n\
+                \This terminal supports local environment variables.\n\
+                \  export varname=\"some value\"\n\
+                \  echo $varname\n\
+                \will print \"some value\".\n\n\
+                \Programs can be combined with the pipe operator, e.g.\n\
+                \  echo \"one\\ntwo\\nthree\\nfour\" | grep th\n\
+                \will print \"three\".\n\n\
+                \To quit the terminal, type `:q`.\n\n"
 
 
 tPrintLn :: String -> Terminal ()
-tPrintLn = tPrint . (++ "\n") . trimEnd
+tPrintLn = tPrint . (\s -> if null s then s else s ++ "\n") . trimEnd
 
 
 evalVars :: String -> Terminal String
