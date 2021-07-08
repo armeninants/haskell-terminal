@@ -50,7 +50,7 @@ makeFree ''ProgramF
 terminalApp :: Terminal ()
 terminalApp = do
     tPrint  "+-----------------------------------------------+\n\
-            \|          Welcome to Haskell Terminal!         |\n\
+            \|      \x1F44B  Welcome to Haskell Terminal!         |\n\
             \| Type `help` for instructions or `:q` to quit. |\n\
             \|-----------------------------------------------+\n"
     fix $ \loop -> do
@@ -71,7 +71,7 @@ terminalTestApp = evalVars >=> tParse >=> either (return . Left) tRun
 
 tGetLine :: Terminal String
 tGetLine = do
-    l <- fmap trim <$> tReadLine "haskell-terminal \x1F449 "
+    l <- fmap trim <$> tReadLine "haskell-terminal \x1F3C4 "
     case l of
         Nothing  -> tGetLine
         Just ""  -> tGetLine

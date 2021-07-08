@@ -70,9 +70,7 @@ interpretTerminal = \case
         next
 
     TPrintError str next -> do
-        liftIO $ do
-            putChunk $ "Error: " & fore red
-            putStrLn str
+        liftIO . putStrLn $ "\x1F937 " ++ str
         next
 
     TGetEnv var next -> do
