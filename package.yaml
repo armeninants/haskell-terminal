@@ -30,7 +30,6 @@ dependencies:
 - haskeline
 - free
 - mtl
-- rainbow
 
 ghc-options:
 - -Wall

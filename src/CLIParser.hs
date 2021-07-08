@@ -12,7 +12,7 @@ import ToyPrograms
 
 
 cliParser :: Parser Program
-cliParser = P.buildExpressionParser table term <?> "expression"
+cliParser = P.buildExpressionParser table term <?> "command line instruction"
     where
         table =
             [ [Infix (reservedOp "|" >> return pipe) AssocLeft]

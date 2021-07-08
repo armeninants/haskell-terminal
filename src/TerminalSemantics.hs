@@ -7,7 +7,6 @@ import           RIO
 import qualified RIO.Map                       as Map
 import           System.Console.Haskeline      (InputT, defaultSettings,
                                                 getInputLine, runInputT)
-import           Rainbow
 import           System.IO                     (putStr, putStrLn)
 import           TerminalSyntax                (Program, ProgramF (..),
                                                 Terminal, TerminalF (..))
@@ -56,8 +55,7 @@ runProgram prog input = do
 interpretTerminal :: TerminalF (TerminalIO next) -> TerminalIO next
 interpretTerminal = \case
     TReadLine str next -> do
-        liftIO $ putChunk $ fromString str & fore magenta & bold
-        lift (getInputLine "") >>= next
+        lift (getInputLine str) >>= next
 
     TParse str next ->
         next $ mapLeft show (parse cliParser "" str)

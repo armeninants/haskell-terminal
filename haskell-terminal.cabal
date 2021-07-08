@@ -68,7 +68,6 @@ library
     , optparse-simple
     , parsec
     , process
-    , rainbow
     , regex-tdfa
     , rio >=0.1.12.0
     , universe-base
@@ -115,7 +114,6 @@ executable haskell-terminal
     , optparse-simple
     , parsec
     , process
-    , rainbow
     , regex-tdfa
     , rio >=0.1.12.0
     , universe-base
@@ -165,7 +163,6 @@ test-suite haskell-terminal-test
     , optparse-simple
     , parsec
     , process
-    , rainbow
     , regex-tdfa
     , rio >=0.1.12.0
     , universe-base
