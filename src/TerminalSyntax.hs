@@ -5,7 +5,7 @@ module TerminalSyntax where
 import           Control.Monad.Free
 import           Control.Monad.Free.TH         (makeFree)
 import           Lexer                         (braces, identifier)
-import           RIO                           hiding (many, (<|>), try)
+import           RIO                           hiding (many, try, (<|>))
 import qualified RIO.Text                      as T
 import           Text.Parsec                   (runParserT)
 import           Text.ParserCombinators.Parsec (many, many1, noneOf, string,
@@ -38,6 +38,7 @@ deriving instance Functor ProgramF
 type ProgramM = Free ProgramF
 
 
+-- | @String -> ProgramM String@
 type Program = String -> ProgramM String
 
 
@@ -56,7 +57,7 @@ terminalApp = do
     fix $ \loop -> do
         cli <- evalVars =<< tGetLine
         case cli of
-            ":q" -> return ()
+            ":q"   -> tPrintLn "bye \x1F44B"
             "help" -> tHelp >> loop
             _ -> do
                 mprog <- tParse cli
@@ -71,7 +72,7 @@ terminalTestApp = evalVars >=> tParse >=> either (return . Left) tRun
 
 tGetLine :: Terminal String
 tGetLine = do
-    l <- fmap trim <$> tReadLine "haskell-terminal \x1F3C4 "
+    l <- fmap trim <$> tReadLine "\x03bb \x2794 "
     case l of
         Nothing  -> tGetLine
         Just ""  -> tGetLine
@@ -83,17 +84,18 @@ tHandleProgram = tRun >=> either tPrintError tPrintLn
 
 
 tHelp :: Terminal ()
-tHelp = tPrint "\nThe supported commands are: cat, echo, grep, wc, shell.\n\
-                \Use --help pragma for more info, e.g. \n\
-                \  grep --help\n\n\
-                \This terminal supports local environment variables.\n\
-                \  export varname=\"some value\"\n\
-                \  echo $varname\n\
-                \will print \"some value\".\n\n\
-                \Programs can be combined with the pipe operator, e.g.\n\
-                \  echo \"one\\ntwo\\nthree\\nfour\" | grep th\n\
-                \will print \"three\".\n\n\
-                \To quit the terminal, type `:q`.\n\n"
+tHelp = tPrint
+    "\nThe supported commands are: cat, echo, grep, wc, shell.\n\
+    \Use --help pragma for more info, e.g. \n\
+    \  grep --help\n\n\
+    \This terminal supports local environment variables.\n\
+    \  export varname=\"some value\"\n\
+    \  echo $varname\n\
+    \will print \"some value\".\n\n\
+    \Programs can be combined with the pipe operator, e.g.\n\
+    \  echo \"one\\ntwo\\nthree\\nfour\" | grep th\n\
+    \will print \"three\".\n\n\
+    \To quit the terminal, type `:q`.\n\n"
 
 
 tPrintLn :: String -> Terminal ()

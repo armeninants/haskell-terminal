@@ -15,7 +15,7 @@ cliParser :: Parser Program
 cliParser = P.buildExpressionParser table term <?> "expression"
     where
         table =
-            [ [Infix (reservedOp "|" >> return (>=>)) AssocLeft]
+            [ [Infix (reservedOp "|" >> return pipe) AssocLeft]
             ]
         term =  progParser <|> exportParser
 
@@ -46,3 +46,7 @@ exportParser = do
     var <- reserved "export" *> identifier
     val <- reservedOp "=" *> argument
     return $ exportProgram [var, val]
+
+
+pipe :: Program -> Program -> Program
+pipe = (>=>)
