@@ -38,7 +38,7 @@ progParser = do
         "wc"    -> wcProgram args
         "grep"  -> grepProgram args
         "shell" -> shellProgram args
-        unknown -> \_ -> pThrowError $ printf "'%s' is not a command." unknown
+        unknown -> \_ -> pThrowError $ printf "%s is unknown." unknown
 
 
 exportParser :: Parser Program

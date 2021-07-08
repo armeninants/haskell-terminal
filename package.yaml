@@ -29,8 +29,8 @@ dependencies:
 - regex-tdfa
 - haskeline
 - free
-- ansi-terminal
 - mtl
+- rainbow
 
 ghc-options:
 - -Wall

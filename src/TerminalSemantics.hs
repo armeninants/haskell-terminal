@@ -5,14 +5,13 @@ import           Control.Monad.Except          (ExceptT, runExceptT, throwError)
 import           Control.Monad.Free            (iterM)
 import           RIO
 import qualified RIO.Map                       as Map
-import           System.Console.ANSI
 import           System.Console.Haskeline      (InputT, defaultSettings,
                                                 getInputLine, runInputT)
+import           Rainbow
 import           System.IO                     (putStr, putStrLn)
 import           TerminalSyntax                (Program, ProgramF (..),
                                                 Terminal, TerminalF (..))
 import           Text.ParserCombinators.Parsec (parse)
-
 
 newtype SessionContext = SessionContext
     { senv :: MVar (Map String String)
@@ -56,11 +55,12 @@ runProgram prog input = do
 
 interpretTerminal :: TerminalF (TerminalIO next) -> TerminalIO next
 interpretTerminal = \case
-    TReadLine str next ->
-        lift (getInputLine str) >>= next
+    TReadLine str next -> do
+        liftIO $ putChunk $ fromString str & fore magenta
+        lift (getInputLine "") >>= next
 
     TParse str next ->
-        next $ mapLeft (const "Invalid command.") (parse cliParser "" str)
+        next $ mapLeft show (parse cliParser "" str)
 
     TRun prog next ->
         runProgram prog "" >>= next
@@ -71,9 +71,7 @@ interpretTerminal = \case
 
     TPrintError str next -> do
         liftIO $ do
-            setSGR [SetColor Foreground Dull Red]
-            putStr "Error: "
-            setSGR [Reset]
+            putChunk $ "Error: " & fore red
             putStrLn str
         next
 

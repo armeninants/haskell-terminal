@@ -5,7 +5,7 @@ module TerminalSyntax where
 import           Control.Monad.Free
 import           Control.Monad.Free.TH         (makeFree)
 import           Lexer                         (braces, identifier)
-import           RIO                           hiding (many, (<|>))
+import           RIO                           hiding (many, (<|>), try)
 import qualified RIO.Text                      as T
 import           Text.Parsec                   (runParserT)
 import           Text.ParserCombinators.Parsec (many, many1, noneOf, string,
@@ -49,7 +49,10 @@ makeFree ''ProgramF
 
 terminalApp :: Terminal ()
 terminalApp = do
-    tPrint "Welcome to Haskell Terminal!\nType `help` for instructions or `:q` to quit.\n\n"
+    tPrint  "+-----------------------------------------------+\n\
+            \|          Welcome to Haskell Terminal!         |\n\
+            \| Type `help` for instructions or `:q` to quit. |\n\
+            \|-----------------------------------------------+\n"
     fix $ \loop -> do
         cli <- evalVars =<< tGetLine
         case cli of
@@ -98,7 +101,7 @@ tPrintLn = tPrint . (\s -> if null s then s else s ++ "\n") . trimEnd
 
 
 evalVars :: String -> Terminal String
-evalVars s = fromRight "" <$> runParserT p () "" s
+evalVars s = fromRight "gago" <$> runParserT p () "" s
     where
         p = concat <$> many (p1 <|> p2)
         p1 = lift . tGetEnv =<< string "$" *> (identifier <|> braces identifier)

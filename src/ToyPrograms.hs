@@ -12,13 +12,14 @@ import           Text.Regex.TDFA
 handleArgs
     :: String               -- ^ command's name
     -> Parser opts          -- ^ parses arguments into options
+    -> InfoMod opts
     -> [String]             -- ^ arguments
-    -> (opts -> Program)    -- ^ main application
+    -> (opts -> Program)    -- ^ main program
     -> Program
 
-handleArgs name parser args prog =
+handleArgs name parser infoMode args prog =
     let
-        opts = info (parser <**> helper) mempty
+        opts = info (parser <**> helper) infoMode
         resp = execParserPure defaultPrefs opts args
     in case resp of
         Success options -> prog options
@@ -91,8 +92,11 @@ slice iFrom iTo xs = take (iTo - iFrom + 1) (drop iFrom xs)
 
 
 grepProgram :: [String] -> Program
-grepProgram args = handleArgs "grep" grepOptsParser args runGrep
+grepProgram args = handleArgs "grep" grepOptsParser infoMod args runGrep
     where
+        infoMod
+            =  header "Toy implementation of Unix `grep`."
+            <> progDesc "echo \"one\\ntwo\\nthree\\nfour\" | grep th"
         runGrep GrepOptions{..} inStr = do
             text <-
                 if null goFiles
@@ -105,6 +109,7 @@ grepProgram args = handleArgs "grep" grepOptsParser args runGrep
                     ls = lines txt
                     matched = filter ((=~ goRegExp) . fst) $ zip ls [0..]
                     withContext = map (\x -> unlines $ takeLines goB goA (snd x) ls) matched
+
         takeLines b a i l = slice (max 0 $ i-b) (min (length l - 1) $ i+a) l
 
 
