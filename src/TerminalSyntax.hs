@@ -71,7 +71,7 @@ terminalTestApp = evalVars >=> tParse >=> either (return . Left) tRun
 
 tGetLine :: Terminal String
 tGetLine = do
-    l <- fmap trim <$> tReadLine "haskell-terminal> "
+    l <- fmap trim <$> tReadLine "haskell-terminal \x1F449 "
     case l of
         Nothing  -> tGetLine
         Just ""  -> tGetLine

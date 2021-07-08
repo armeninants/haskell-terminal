@@ -56,7 +56,7 @@ runProgram prog input = do
 interpretTerminal :: TerminalF (TerminalIO next) -> TerminalIO next
 interpretTerminal = \case
     TReadLine str next -> do
-        liftIO $ putChunk $ fromString str & fore magenta
+        liftIO $ putChunk $ fromString str & fore magenta & bold
         lift (getInputLine "") >>= next
 
     TParse str next ->
