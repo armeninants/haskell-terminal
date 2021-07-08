@@ -1,15 +1,17 @@
 module TerminalSemantics where
 
-import           CLIParser
+import           CLIParser                     (cliParser)
 import           Control.Monad.Except          (ExceptT, runExceptT, throwError)
-import           Control.Monad.Free
-import           RIO                           hiding (many, (<|>))
+import           Control.Monad.Free            (iterM)
+import           RIO
 import qualified RIO.Map                       as Map
 import           System.Console.ANSI
-import           System.Console.Haskeline
+import           System.Console.Haskeline      (InputT, defaultSettings,
+                                                getInputLine, runInputT)
 import           System.IO                     (putStr, putStrLn)
-import           TerminalSyntax
-import           Text.ParserCombinators.Parsec
+import           TerminalSyntax                (Program, ProgramF (..),
+                                                Terminal, TerminalF (..))
+import           Text.ParserCombinators.Parsec (parse)
 
 
 newtype SessionContext = SessionContext
