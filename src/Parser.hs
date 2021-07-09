@@ -1,4 +1,4 @@
-module CLIParser (cliParser) where
+module Parser (cliParser) where
 
 
 import Data.Char

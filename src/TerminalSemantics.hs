@@ -1,6 +1,6 @@
 module TerminalSemantics where
 
-import           CLIParser                     (cliParser)
+import           Parser                     (cliParser)
 import           Control.Monad.Except          (ExceptT, runExceptT, throwError)
 import           Control.Monad.Free            (iterM)
 import           RIO
