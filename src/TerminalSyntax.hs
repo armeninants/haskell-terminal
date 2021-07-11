@@ -5,32 +5,50 @@ module TerminalSyntax where
 import           Control.Monad.Free
 import           Control.Monad.Free.TH         (makeFree)
 import           Lexer                         (braces, identifier)
-import           RIO                           hiding (many, try, (<|>))
+import           RIO                           hiding (Proxy (..), many, try,
+                                                (<|>))
 import qualified RIO.Text                      as T
 import           Text.Parsec                   (runParserT)
 import           Text.ParserCombinators.Parsec (many, many1, noneOf, string,
                                                 (<|>))
 
 
-data TerminalF next
-    = TReadLine String (Maybe String -> next)
-    | TParse String (Either String Program -> next)
-    | TRun Program (Either String String -> next)
-    | TPrint String next
-    | TPrintError String next
-    | TGetEnv String (String -> next)
-    deriving (Functor)
+newtype TError = TErrorStr ByteString
+    deriving (Eq, Show)
+
+instance Exception TError where
+    displayException (TErrorStr b) = show b
+
+
+type TData = ByteString
+
+
+data TerminalF next where
+    TReadLine   :: String -> (Maybe String -> next) -> TerminalF next
+    TParse      :: String -> (Either TError Program -> next) -> TerminalF next
+    TRun        :: Program -> (Maybe TError -> next) -> TerminalF next
+    TRunSync    :: Program -> (Either TError ByteString -> next) -> TerminalF next
+    TPrint      :: String -> next -> TerminalF next
+    TPrintError :: TError -> next -> TerminalF next
+    TGetEnv     :: String -> (String -> next) -> TerminalF next
+
+deriving instance Functor TerminalF
 
 
 type Terminal = Free TerminalF
 
 
 data ProgramF next where
-    PSafeIO :: IO a -> (a -> next) -> ProgramF next
-    PGetEnv :: String -> (String -> next) -> ProgramF next
-    PSetEnv :: String -> String -> (String -> next) -> ProgramF next
-    PThrowError :: String -> (String -> next) -> ProgramF next
-
+    PSafeIO     :: IO a -> (a -> next) -> ProgramF next
+    PGetEnv     :: String -> (String -> next) -> ProgramF next
+    PSetEnv     :: String -> String -> next -> ProgramF next
+    PThrowError :: TError -> next -> ProgramF next
+    PThrowStr   :: ByteString -> next -> ProgramF next
+    PAwait      :: (Maybe ByteString -> next) -> ProgramF next
+    PYield      :: ByteString -> next -> ProgramF next
+    -- PExec       :: String -> (String -> next) -> ProgramF next
+    -- PAwaitTo    :: Handle -> next -> ProgramF next
+    -- PYieldFrom  :: Handle -> next -> ProgramF next
 
 deriving instance Functor ProgramF
 
@@ -38,8 +56,11 @@ deriving instance Functor ProgramF
 type ProgramM = Free ProgramF
 
 
--- | @String -> ProgramM String@
-type Program = String -> ProgramM String
+-- | @Program = Atomic (ProgramM ()) | Pipe Program Program@
+data Program
+    = Atomic (ProgramM ())
+    | Pipe Program Program
+    | Shell String
 
 
 makeFree ''TerminalF
@@ -51,7 +72,7 @@ makeFree ''ProgramF
 terminalApp :: Terminal ()
 terminalApp = do
     tPrint  "+-----------------------------------------------+\n\
-            \|      \x1F44B  Welcome to Haskell Terminal!         |\n\
+            \|          Welcome to Haskell Terminal!         |\n\
             \| Type `help` for instructions or `:q` to quit. |\n\
             \|-----------------------------------------------+\n"
     fix $ \loop -> do
@@ -66,8 +87,8 @@ terminalApp = do
 
 
 -- | Takes a cli input and returns the results of its execution.
-terminalTestApp :: String -> Terminal (Either String String)
-terminalTestApp = evalVars >=> tParse >=> either (return . Left) tRun
+terminalTestApp :: String -> Terminal (Either TError ByteString)
+terminalTestApp = evalVars >=> tParse >=> either (return . Left) tRunSync
 
 
 tGetLine :: Terminal String
@@ -80,7 +101,7 @@ tGetLine = do
 
 
 tHandleProgram :: Program -> Terminal ()
-tHandleProgram = tRun >=> either tPrintError tPrintLn
+tHandleProgram = tRun >=> maybe (return ()) tPrintError
 
 
 tHelp :: Terminal ()
@@ -116,3 +137,23 @@ trimEnd = T.unpack . T.stripEnd . T.pack
 
 trim :: String -> String
 trim = T.unpack . T.strip . T.pack
+
+
+-- | An aleternative representation of the program
+newtype Program' = Program' ([ProgramM ()], Maybe (String, Program'))
+
+
+toProgram' :: Program -> Program'
+toProgram' = f . g where
+    g :: Program -> [Either (ProgramM ()) String]
+    g (Atomic p)   = [Left p]
+    g (Shell cmd)  = [Right cmd]
+    g (Pipe p1 p2) = g p1 ++ g p2
+
+    f :: [Either (ProgramM ()) String] -> Program'
+    f l =
+        case l2 of
+            []               -> Program' (l1, Nothing)
+            (Right smd):rest -> Program' (l1, Just (smd, f rest))
+            _                -> error "This is an impossible scenario"
+        where (l1, l2) = first lefts (span isLeft l)

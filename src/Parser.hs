@@ -15,7 +15,7 @@ cliParser :: Parser Program
 cliParser = P.buildExpressionParser table term <?> "command line instruction"
     where
         table =
-            [ [Infix (reservedOp "|" >> return pipe) AssocLeft]
+            [ [Infix (reservedOp "|" >> return Pipe) AssocLeft]
             ]
         term =  progParser <|> exportParser
 
@@ -33,20 +33,20 @@ progParser = do
     cmd <- identifier
     args <- many argument
     return $ case cmd of
-        "cat"   -> catProgram args
-        "echo"  -> echoProgram args
-        "wc"    -> wcProgram args
-        "grep"  -> grepProgram args
-        "shell" -> shellProgram args
-        unknown -> \_ -> pThrowError $ printf "%s is unknown." unknown
+        "shell" -> Shell  $ unwords args
+        "cat"   -> Atomic $ catProgram args
+        "echo"  -> Atomic $ echoProgram args
+        "wc"    -> Atomic $ wcProgram args
+        "grep"  -> Atomic $ grepProgram args
+        unknown -> Atomic $ pThrowStr $ fromString $ printf "%s is unknown." unknown
 
 
 exportParser :: Parser Program
 exportParser = do
     var <- reserved "export" *> identifier
     val <- reservedOp "=" *> argument
-    return $ exportProgram [var, val]
+    return . Atomic $ exportProgram [var, val]
 
 
-pipe :: Program -> Program -> Program
-pipe = (>=>)
+-- pipe :: Program -> Program -> Program
+-- pipe = (>=>)

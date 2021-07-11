@@ -1,16 +1,17 @@
 module TerminalSemantics where
 
-import           Parser                     (cliParser)
-import           Control.Monad.Except          (ExceptT, runExceptT, throwError)
+import           Conduit
 import           Control.Monad.Free            (iterM)
-import           RIO
+import           Data.Conduit.Process
+import           Parser                        (cliParser)
+import           RIO                           hiding (Proxy)
 import qualified RIO.Map                       as Map
 import           System.Console.Haskeline      (InputT, defaultSettings,
                                                 getInputLine, runInputT)
 import           System.IO                     (putStr, putStrLn)
-import           TerminalSyntax                (Program, ProgramF (..),
-                                                Terminal, TerminalF (..))
+import           TerminalSyntax
 import           Text.ParserCombinators.Parsec (parse)
+
 
 newtype SessionContext = SessionContext
     { senv :: MVar (Map String String)
@@ -25,7 +26,19 @@ newtype ProgramContext = ProgramContext
 type TerminalIO = ReaderT SessionContext (InputT IO)
 
 
-type ProgramMIO = ExceptT String (ReaderT ProgramContext IO)
+type ProgramMIO = RIO ProgramContext
+
+
+type ProgramMIOPipe = ConduitT TData TData ProgramMIO
+
+
+type ProgramMIOProducer = ConduitT () TData ProgramMIO
+
+
+type ProgramMIOConsumer = ConduitT TData Void ProgramMIO
+
+
+type ProgramMIOEffect = ConduitT () Void ProgramMIO
 
 
 newSession :: IO SessionContext
@@ -45,11 +58,26 @@ runTerminal terminalProg = liftIO $ do
         runReaderT (iterM interpretTerminal terminalProg) env
 
 
-runProgram :: Program -> String -> TerminalIO (Either String String)
-runProgram prog input = do
+leftToMaybe :: Either a b -> Maybe a
+leftToMaybe = either Just (const Nothing)
+
+
+runProgram :: Exception e => Program -> TerminalIO (Maybe e)
+runProgram prog = do
     context <- newProgramContext =<< ask
-    let progIO = iterM interpretProgram (prog input)
-    liftIO $ runReaderT (runExceptT progIO) context
+    let progIO = interpretProgram' prog stdoutC
+    runRIO context $ leftToMaybe <$> try progIO
+
+
+testConsumer :: Monoid a => ConduitT a Void ProgramMIO a
+testConsumer = fromMaybe mempty <$> await
+
+
+runProgramSync :: Exception e => Program -> TerminalIO (Either e TData)
+runProgramSync prog = do
+    context <- newProgramContext =<< ask
+    let progIO = interpretProgram' prog testConsumer
+    runRIO context (try progIO)
 
 
 interpretTerminal :: TerminalF (TerminalIO next) -> TerminalIO next
@@ -58,17 +86,20 @@ interpretTerminal = \case
         lift (getInputLine str) >>= next
 
     TParse str next ->
-        next $ mapLeft show (parse cliParser "" str)
+        next $ mapLeft (TErrorStr . fromString . show) (parse cliParser "" str)
 
     TRun prog next ->
-        runProgram prog "" >>= next
+        runProgram prog >>= next
+
+    TRunSync prog next ->
+        runProgramSync prog >>= next
 
     TPrint str next -> do
-        liftIO $ putStr str
+        liftIO (putStr str)
         next
 
-    TPrintError str next -> do
-        liftIO . putStrLn $ "\x1F937 " ++ str
+    TPrintError err next -> do
+        liftIO . putStrLn $ "\x1F937 " ++ displayException err
         next
 
     TGetEnv var next -> do
@@ -77,9 +108,9 @@ interpretTerminal = \case
         next $ Map.findWithDefault "" var m
 
 
-interpretProgram :: ProgramF (ProgramMIO next) -> ProgramMIO next
-interpretProgram = \case
-    PSafeIO io next -> liftIO (tryIO io) >>= either (throwError . show >=> next) next
+interpretProgramF :: ProgramF (ProgramMIOPipe next) -> ProgramMIOPipe next
+interpretProgramF = \case
+    PSafeIO io next -> liftIO (tryIO io) >>= either (throwString . displayException >=> next) next
 
     PGetEnv var next -> do
         env <- view $ to penv
@@ -89,6 +120,76 @@ interpretProgram = \case
     PSetEnv var val next -> do
         env <- view $ to penv
         liftIO $ modifyMVar_ env (return . Map.insert var val)
-        next ""
+        next
 
-    PThrowError str next -> throwError str >> next ""
+    PThrowError str next -> throwIO str >> next
+
+    PThrowStr str next -> throwIO (TErrorStr str) >> next
+
+    PAwait next -> await >>= next
+
+    PYield str next -> yield str >> next
+
+
+interpretProgram' :: Program -> ProgramMIOConsumer a -> ProgramMIO a
+interpretProgram' prog cons =
+    withUnliftIO $ \u -> do
+        (sphs, cleanProcs, inputProcs, errorProcs, outProc) <- f (toProgram' prog) [] [] [] [] Nothing
+        if null sphs
+        then unliftIO u $ runConduit (outProc .| cons)
+        else do
+            let outProc' = Concurrently (unliftIO u $ runConduit (outProc .| cons))
+                inputProcs' = map (\(ip, clp) -> Concurrently (unliftIO u (runConduit ip) `finally` clp)) inputProcs
+                inputProcsJoint = mconcat inputProcs'
+                errorProcs' = map (Concurrently . unliftIO u . runConduit) errorProcs
+                errorProcsJoint = asum errorProcs'
+                cleanProc = foldr (>>) (pure ()) cleanProcs
+            (_, resStdout, _resStderr) <-
+                runConcurrently (
+                    (,,)
+                    <$> inputProcsJoint
+                    <*> outProc'
+                    <*> errorProcsJoint)
+                `finally` cleanProc
+                `onException` forM_ sphs terminateStreamingProcess
+            _ec <- forM sphs waitForStreamingProcess
+            return resStdout
+
+    where
+        f   :: Program'
+            -> [StreamingProcessHandle]
+            -> [IO ()]
+            -> [(ProgramMIOEffect (), IO ())]
+            -> [ProgramMIOEffect TError]
+            -> Maybe (ProgramMIOProducer ())
+            -> IO ([StreamingProcessHandle], [IO ()], [(ProgramMIOEffect (), IO ())], [ProgramMIOEffect TError], ProgramMIOProducer ())
+
+        f prog' sphs cleanProcs inputProcs errProcs mOut = case prog' of
+            Program' (ps, Just (cmd, prog1)) -> do
+                (  (sinkStdin :: ProgramMIOConsumer (), closeStdin)
+                 , (sourceStdout :: ProgramMIOProducer (), closeStdout)
+                 , (sourceStderr :: ProgramMIOProducer (), closeStderr)
+                 ,  sph) <- streamingProcess (shell cmd)
+
+                let errProc = TErrorStr <$> (sourceStderr .| testConsumer)
+                    firstProducer = fromMaybe (return ()) mOut
+                    inputProc = (mkProc firstProducer ps .| sinkStdin, closeStdin)
+
+                f   prog1
+                    (sphs ++ [sph])
+                    (cleanProcs ++ [closeStdout, closeStderr])
+                    (inputProcs ++ [inputProc])
+                    (errProcs ++ [errProc])
+                    (Just sourceStdout)
+
+            Program' (ps, Nothing) -> do
+                let firstProducer = fromMaybe (return ()) mOut
+                    outProc = mkProc firstProducer ps
+                return (sphs, cleanProcs, inputProcs, errProcs, outProc)
+
+        mkProc :: ProgramMIOProducer () -> [ProgramM ()] -> ProgramMIOProducer ()
+        mkProc pr []       = pr
+        mkProc pr (p:rest) = mkProc (pr .| iterM interpretProgramF p) rest
+
+        terminateStreamingProcess :: MonadIO m => StreamingProcessHandle -> m ()
+        terminateStreamingProcess = liftIO . terminateProcess . streamingProcessHandleRaw

@@ -1,4 +1,3 @@
-{-# LANGUAGE NoImplicitPrelude #-}
 module TerminalSemanticsSpec (spec) where
 
 import RIO
@@ -7,11 +6,11 @@ import TerminalSyntax
 import Test.Hspec
 
 
-execute :: String -> IO (Either String String)
+execute :: String -> IO (Either TError TData)
 execute = runTerminal . terminalTestApp
 
 
-executeMany :: [String] -> IO [Either String String]
+executeMany :: [String] -> IO [Either TError TData]
 executeMany = runTerminal . mapM terminalTestApp
 
 
@@ -38,11 +37,6 @@ spec = do
             `shouldReturn`
             Right "four\nfive\nsix\n--\nsix\nseven\neight\n"
 
-        it "shell works" $ execute
-            "shell ls | grep test-data"
-            `shouldReturn`
-            Right "test-data\n"
-
         it "commands can be interpolated" $ executeMany
             ["export echoVar=echo", "$echoVar \"echo this\""]
             `shouldReturn`
@@ -57,3 +51,13 @@ spec = do
             "echo hello \"#world\" # howdy"
             `shouldReturn`
             Right "hello #world"
+
+        it "shell produces output" $ execute
+            "shell echo test"
+            `shouldReturn`
+            Right "test\n"
+
+        it "shell receives input through stdin" $ execute
+            "echo hello | shell cat"
+            `shouldReturn`
+            Right "hello"

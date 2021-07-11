@@ -47,7 +47,6 @@ library
       FlexibleContexts
       FlexibleInstances
       GADTs
-      GeneralizedNewtypeDeriving
       LambdaCase
       MultiParamTypeClasses
       NoImplicitPrelude
@@ -61,7 +60,10 @@ library
       TypeFamilies
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints
   build-depends:
-      base >=4.11 && <10
+      base >=4.14.1
+    , bytestring
+    , conduit
+    , conduit-extra
     , free
     , haskeline
     , mtl
@@ -92,7 +94,6 @@ executable haskell-terminal
       FlexibleContexts
       FlexibleInstances
       GADTs
-      GeneralizedNewtypeDeriving
       LambdaCase
       MultiParamTypeClasses
       NoImplicitPrelude
@@ -106,7 +107,10 @@ executable haskell-terminal
       TypeFamilies
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.11 && <10
+      base >=4.14.1
+    , bytestring
+    , conduit
+    , conduit-extra
     , free
     , haskeline
     , haskell-terminal
@@ -140,7 +144,6 @@ test-suite haskell-terminal-test
       FlexibleContexts
       FlexibleInstances
       GADTs
-      GeneralizedNewtypeDeriving
       LambdaCase
       MultiParamTypeClasses
       NoImplicitPrelude
@@ -154,7 +157,10 @@ test-suite haskell-terminal-test
       TypeFamilies
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.11 && <10
+      base >=4.14.1
+    , bytestring
+    , conduit
+    , conduit-extra
     , free
     , haskeline
     , haskell-terminal
