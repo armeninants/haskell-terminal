@@ -46,7 +46,3 @@ exportParser = do
     var <- reserved "export" *> identifier
     val <- reservedOp "=" *> argument
     return . Atomic $ exportProgram [var, val]
-
-
--- pipe :: Program -> Program -> Program
--- pipe = (>=>)
