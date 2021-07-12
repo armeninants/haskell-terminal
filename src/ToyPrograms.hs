@@ -4,9 +4,9 @@ module ToyPrograms where
 import qualified Data.ByteString.Char8      as B
 import           Options.Applicative.Simple
 import           RIO
+import           System.Process
 import           TerminalSyntax
 import           Text.Regex.TDFA
-
 
 handleArgs
     :: String                   -- ^ command's name
@@ -115,9 +115,10 @@ grepProgram args = handleArgs "grep" grepOptsParser infoMod args runGrep
 ------------------------------------------------------------
 -- Shell
 
--- shellProgram :: [String] -> ProgramM ()
--- shellProgram args = do
---     pSafeIO (readCreateProcess (shell $ unwords args) "")  >>= pYield
+shellProgram :: [String] -> ProgramM ()
+shellProgram args = do
+    out <- pSafeIO (readCreateProcess (proc "sh" ["-c", unwords args]) "")
+    pYield $ fromString out
 
 
 ------------------------------------------------------------

@@ -33,7 +33,7 @@ progParser = do
     cmd <- identifier
     args <- many argument
     return $ case cmd of
-        "shell" -> Shell  $ unwords args
+        "shell" -> Atomic $ shellProgram args
         "cat"   -> Atomic $ catProgram args
         "echo"  -> Atomic $ echoProgram args
         "wc"    -> Atomic $ wcProgram args

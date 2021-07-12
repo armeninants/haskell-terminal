@@ -46,9 +46,7 @@ data ProgramF next where
     PThrowStr   :: ByteString -> next -> ProgramF next
     PAwait      :: (Maybe ByteString -> next) -> ProgramF next
     PYield      :: ByteString -> next -> ProgramF next
-    -- PExec       :: String -> (String -> next) -> ProgramF next
-    -- PAwaitTo    :: Handle -> next -> ProgramF next
-    -- PYieldFrom  :: Handle -> next -> ProgramF next
+
 
 deriving instance Functor ProgramF
 
@@ -60,7 +58,7 @@ type ProgramM = Free ProgramF
 data Program
     = Atomic (ProgramM ())
     | Pipe Program Program
-    | Shell String
+
 
 
 makeFree ''TerminalF
@@ -137,23 +135,3 @@ trimEnd = T.unpack . T.stripEnd . T.pack
 
 trim :: String -> String
 trim = T.unpack . T.strip . T.pack
-
-
--- | An aleternative representation of the program
-newtype Program' = Program' ([ProgramM ()], Maybe (String, Program'))
-
-
-toProgram' :: Program -> Program'
-toProgram' = f . g where
-    g :: Program -> [Either (ProgramM ()) String]
-    g (Atomic p)   = [Left p]
-    g (Shell cmd)  = [Right cmd]
-    g (Pipe p1 p2) = g p1 ++ g p2
-
-    f :: [Either (ProgramM ()) String] -> Program'
-    f l =
-        case l2 of
-            []               -> Program' (l1, Nothing)
-            (Right smd):rest -> Program' (l1, Just (smd, f rest))
-            _                -> error "This is an impossible scenario"
-        where (l1, l2) = first lefts (span isLeft l)

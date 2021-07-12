@@ -2,7 +2,6 @@ module TerminalSemantics where
 
 import           Conduit
 import           Control.Monad.Free            (iterM)
-import           Data.Conduit.Process
 import           Parser                        (cliParser)
 import           RIO                           hiding (Proxy)
 import qualified RIO.Map                       as Map
@@ -11,13 +10,7 @@ import           System.Console.Haskeline      (InputT, defaultSettings,
 import           System.IO                     (putStr, putStrLn)
 import           TerminalSyntax
 import           Text.ParserCombinators.Parsec (parse)
-import Text.Printf                        (printf)
-import Prelude (head)
-import qualified Data.Conduit.Combinators as CC
-import qualified Data.Conduit.List as CL
-import qualified Data.Conduit.Process.Typed as CT
-import qualified System.Process.Typed as PT
-import qualified Data.Conduit.Binary as CB
+
 
 newtype SessionContext = SessionContext
     { senv :: MVar (Map String String)
@@ -71,7 +64,7 @@ leftToMaybe = either Just (const Nothing)
 runProgram :: Exception e => Program -> TerminalIO (Maybe e)
 runProgram prog = do
     context <- newProgramContext =<< ask
-    let progIO = interpretProgram' prog stdoutC
+    let progIO = interpretProgram prog stdoutC
     runRIO context $ leftToMaybe <$> try progIO
 
 
@@ -82,7 +75,7 @@ testConsumer = fromMaybe mempty <$> await
 runProgramSync :: Exception e => Program -> TerminalIO (Either e TData)
 runProgramSync prog = do
     context <- newProgramContext =<< ask
-    let progIO = interpretProgram' prog testConsumer
+    let progIO = interpretProgram prog testConsumer
     runRIO context (try progIO)
 
 
@@ -137,115 +130,7 @@ interpretProgramF = \case
     PYield str next -> yield str >> next
 
 
-interpretProgram' :: Program -> ProgramMIOConsumer a -> ProgramMIO a
-interpretProgram' prog cons =
-    withUnliftIO $ \u -> do
-        (sphs, cleanProcs, inputProcs, errorProcs, outProc) <- f (toProgram' prog) [] [] [] [] Nothing
-        if null sphs
-        then unliftIO u $ runConduit (outProc .| cons)
-        else do
-            let outProc' = Concurrently (unliftIO u $ runConduit (outProc .| cons))
-                inputProcs' = map (\(ip, clp) -> Concurrently (unliftIO u (runConduit ip) `finally` clp)) inputProcs
-                -- inputProcs' = map (\(ip, clp) -> Concurrently (unliftIO u (runConduit ip))) inputProcs
-                -- inputProcsJoint = mconcat inputProcs'
-                inputProcsJoint = head inputProcs'
-                errorProcs' = map (Concurrently . unliftIO u . runConduit) errorProcs
-                -- errorProcsJoint = asum errorProcs'
-                errorProcsJoint = head errorProcs'
-                cleanProc = foldl' (>>) (pure ()) cleanProcs
-            (_, resStdout, _resStderr) <-
-                runConcurrently (
-                    (,,)
-                    <$> inputProcsJoint
-                    <*> outProc'
-                    <*> errorProcsJoint)
-                `finally` cleanProc
-                `onException` mapM_ terminateStreamingProcess sphs
-            mapM_ waitForStreamingProcess sphs
-            return resStdout
-
-    -- where
-f   :: Program'
-    -> [StreamingProcessHandle]
-    -> [IO ()]
-    -> [(ProgramMIOEffect (), IO ())]
-    -> [ProgramMIOEffect TError]
-    -> Maybe (ProgramMIOProducer ())
-    -> IO ([StreamingProcessHandle], [IO ()], [(ProgramMIOEffect (), IO ())], [ProgramMIOEffect TError], ProgramMIOProducer ())
-
-f prog' sphs cleanProcs inputProcs errProcs mOut = case prog' of
-    Program' (ps, Just (cmd, prog1)) -> do
-        (  (sinkStdin :: ProgramMIOConsumer (), closeStdin)
-        -- (  stdin_hdl :: Handle
-            , (sourceStdout :: ProgramMIOProducer (), closeStdout)
-            , (sourceStderr :: ProgramMIOProducer (), closeStderr)
-            ,  sph) <- streamingProcess (shell cmd)
-
-        -- let sinkStdin = sinkHandle stdin_hdl
-            -- closeStdin = hClose stdin_hdl
-
-        let errProc = TErrorStr <$> (sourceStderr .| testConsumer)
-            firstProducer = fromMaybe (return ()) mOut
-            inputProc = (mkProc firstProducer ps .| sinkStdin, closeStdin)
-            -- inputProc = (yield "vacho" .| sinkStdin, closeStdin)
-
-        f   prog1
-            (sphs ++ [sph])
-            (cleanProcs ++ [closeStdout, closeStderr])
-            (inputProcs ++ [inputProc])
-            (errProcs ++ [errProc])
-            (Just sourceStdout)
-
-    Program' (ps, Nothing) -> do
-        let firstProducer = fromMaybe (return ()) mOut
-            outProc = mkProc firstProducer ps
-        return (sphs, cleanProcs, inputProcs, errProcs, outProc)
-
-mkProc :: ProgramMIOProducer () -> [ProgramM ()] -> ProgramMIOProducer ()
-mkProc = foldl' $ \initProd p -> initProd .| iterM interpretProgramF p
-
-terminateStreamingProcess :: MonadIO m => StreamingProcessHandle -> m ()
-terminateStreamingProcess = liftIO . terminateProcess . streamingProcessHandleRaw
-
-------------------------------------------------------
--- Testing
-
-test1 :: IO ([StreamingProcessHandle], [IO ()], [(ProgramMIOEffect (), IO ())], [ProgramMIOEffect TError], ProgramMIOProducer ())
-test1 = do
-    let cmd = "echo hello | shell cat"
-    let x = parse cliParser "" cmd
-    either (error "something went wrong") go x
-    where
-        go prog = do
-            let prog' = toProgram' prog
-            putStrLn $ pr prog'
-            f (toProgram' prog) [] [] [] [] Nothing
-
-
-test2 :: IO ()
-test2 = do
-    (e, a, b) <- sourceProcessWithStreams (shell "cat") (CC.yieldMany ["Hello", "World"]) CL.consume CL.consume
-    printf "exit code %s\n" $ show e
-    printf "out %s\n" $ show a
-    printf "error %s\n" $ show b
-    -- return undefined
-
-
-test3 :: IO ()
-test3 = do
-    let stdin_sink = CT.createSink :: CT.StreamSpec 'CT.STInput (ConduitM ByteString Void IO ())
-        pc = PT.setStdin stdin_sink (PT.shell "cat")
-    CT.withLoggedProcess_ pc $ \p -> do
-        let in_ = CT.getStdin p
-        let proc1 = runConduit (CT.getStdout p .| stdoutC) <* CT.waitExitCode p
-        let proc2 = runConduit (yield "Hello" .| in_)
-        proc2
-        proc1
-
--- | An aleternative representation of the program
--- newtype Program' = Program' ([ProgramM ()], Maybe (String, Program'))
-
-
-pr :: Program' -> String
-pr (Program' (l, Nothing)) = printf "([%d], Nothing)" (length l)
-pr (Program' (l, Just (cmd, p))) = printf "([%d], Just (%s, %s) )" (length l) cmd (pr p)
+interpretProgram :: Program -> ProgramMIOConsumer a -> ProgramMIO a
+interpretProgram prog cons = runConduit (return () .| go prog .| cons) where
+    go (Atomic p)   = iterM interpretProgramF p
+    go (Pipe p1 p2) = go p1 .| go p2
